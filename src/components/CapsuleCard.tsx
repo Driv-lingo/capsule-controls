@@ -1,17 +1,10 @@
 import { Package, Clock, Hash } from "lucide-react";
 import StatusBadge from "./StatusBadge";
+import { CapsuleRow } from "@/context/OCFContext";
 
-type CapsuleData = {
-  id: string;
-  name: string;
-  version: string;
-  status: "compliant" | "non-compliant" | "warning" | "pending";
-  obligations: number;
-  lastRun: string;
-  source: string;
-};
+type Status = "compliant" | "non-compliant" | "warning" | "pending";
 
-const CapsuleCard = ({ capsule }: { capsule: CapsuleData }) => (
+const CapsuleCard = ({ capsule }: { capsule: CapsuleRow }) => (
   <div className="group rounded-lg border border-border bg-card p-4 transition-all hover:border-glow hover:glow-primary">
     <div className="flex items-start justify-between">
       <div className="flex items-center gap-3">
@@ -23,7 +16,7 @@ const CapsuleCard = ({ capsule }: { capsule: CapsuleData }) => (
           <p className="text-xs text-muted-foreground">{capsule.source}</p>
         </div>
       </div>
-      <StatusBadge status={capsule.status} />
+      <StatusBadge status={capsule.status as Status} />
     </div>
     <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground font-mono">
       <span className="flex items-center gap-1">
@@ -32,12 +25,11 @@ const CapsuleCard = ({ capsule }: { capsule: CapsuleData }) => (
       </span>
       <span className="flex items-center gap-1">
         <Clock className="h-3 w-3" />
-        {capsule.lastRun}
+        {capsule.last_run}
       </span>
       <span>{capsule.obligations} obligations</span>
     </div>
   </div>
 );
 
-export { type CapsuleData };
 export default CapsuleCard;

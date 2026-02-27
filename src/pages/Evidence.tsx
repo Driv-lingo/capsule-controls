@@ -3,21 +3,18 @@ import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useOCF } from "@/context/OCFContext";
 import { toast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+
+type Status = "compliant" | "non-compliant" | "warning" | "pending";
 
 const Evidence = () => {
-  const { evidence } = useOCF();
+  const { evidence, loading } = useOCF();
 
   const handleDownload = (packet: typeof evidence[0]) => {
     const blob = new Blob([JSON.stringify({
-      id: packet.id,
-      capsule: packet.capsule,
-      timestamp: packet.timestamp,
-      hash: packet.hash,
-      checks: packet.checks,
-      passed: packet.passed,
-      status: packet.status,
-      signer: "KeyVault/ocf-signing-key",
-      format: "OCF Evidence Packet v1.0",
+      id: packet.id, capsule: packet.capsule_name, timestamp: packet.created_at,
+      hash: packet.hash, checks: packet.checks, passed: packet.passed, status: packet.status,
+      signer: "KeyVault/ocf-signing-key", format: "OCF Evidence Packet v1.0",
     }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -25,14 +22,14 @@ const Evidence = () => {
     a.download = `${packet.id}-evidence.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Downloaded", description: `Evidence packet ${packet.id}` });
+    toast({ title: "Downloaded", description: `Evidence packet ${packet.id.slice(0, 8)}` });
   };
 
   const handleExportAll = () => {
     const blob = new Blob([JSON.stringify(evidence.map((p) => ({
-      ...p,
-      signer: "KeyVault/ocf-signing-key",
-      format: "OCF Evidence Packet v1.0",
+      id: p.id, capsule: p.capsule_name, timestamp: p.created_at,
+      hash: p.hash, checks: p.checks, passed: p.passed, status: p.status,
+      signer: "KeyVault/ocf-signing-key", format: "OCF Evidence Packet v1.0",
     })), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -42,6 +39,10 @@ const Evidence = () => {
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: `${evidence.length} evidence packets` });
   };
+
+  if (loading) {
+    return <div className="flex flex-1 items-center justify-center"><div className="text-sm text-muted-foreground">Loading...</div></div>;
+  }
 
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
@@ -63,22 +64,18 @@ const Evidence = () => {
 
       <div className="space-y-3">
         {evidence.map((p, i) => (
-          <div
-            key={p.id}
-            className="rounded-lg border border-border bg-card p-5 animate-fade-in"
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
+          <div key={p.id} className="rounded-lg border border-border bg-card p-5 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">{p.capsule}</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{p.capsule_name}</h3>
                   <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground font-mono">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {new Date(p.timestamp).toLocaleString()}
+                      {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                     </span>
                     <span className="flex items-center gap-1">
                       <Hash className="h-3 w-3" />
@@ -87,7 +84,7 @@ const Evidence = () => {
                   </div>
                 </div>
               </div>
-              <StatusBadge status={p.status} />
+              <StatusBadge status={p.status as Status} />
             </div>
 
             <div className="mt-4 flex items-center gap-4">
@@ -98,9 +95,7 @@ const Evidence = () => {
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-muted">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      p.status === "compliant" ? "bg-success" : p.status === "warning" ? "bg-warning" : "bg-destructive"
-                    }`}
+                    className={`h-full rounded-full transition-all ${p.status === "compliant" ? "bg-success" : p.status === "warning" ? "bg-warning" : "bg-destructive"}`}
                     style={{ width: `${(p.passed / p.checks) * 100}%` }}
                   />
                 </div>

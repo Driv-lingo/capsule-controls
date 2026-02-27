@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity: {
+        Row: {
+          capsule_name: string
+          created_at: string
+          event: string
+          event_type: string
+          id: string
+        }
+        Insert: {
+          capsule_name: string
+          created_at?: string
+          event: string
+          event_type?: string
+          id?: string
+        }
+        Update: {
+          capsule_name?: string
+          created_at?: string
+          event?: string
+          event_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      capsules: {
+        Row: {
+          clause: string | null
+          controls: Json | null
+          created_at: string
+          hash: string | null
+          id: string
+          last_run: string
+          name: string
+          obligations: number
+          source: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          clause?: string | null
+          controls?: Json | null
+          created_at?: string
+          hash?: string | null
+          id?: string
+          last_run?: string
+          name: string
+          obligations?: number
+          source?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          clause?: string | null
+          controls?: Json | null
+          created_at?: string
+          hash?: string | null
+          id?: string
+          last_run?: string
+          name?: string
+          obligations?: number
+          source?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      evidence_packets: {
+        Row: {
+          capsule_id: string | null
+          capsule_name: string
+          checks: number
+          created_at: string
+          hash: string
+          id: string
+          passed: number
+          status: string
+        }
+        Insert: {
+          capsule_id?: string | null
+          capsule_name: string
+          checks?: number
+          created_at?: string
+          hash: string
+          id?: string
+          passed?: number
+          status?: string
+        }
+        Update: {
+          capsule_id?: string | null
+          capsule_name?: string
+          checks?: number
+          created_at?: string
+          hash?: string
+          id?: string
+          passed?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_packets_capsule_id_fkey"
+            columns: ["capsule_id"]
+            isOneToOne: false
+            referencedRelation: "capsules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gates: {
+        Row: {
+          capsule_names: string[]
+          created_at: string
+          findings: string
+          id: string
+          pr: string
+          repo: string
+          result: string
+        }
+        Insert: {
+          capsule_names?: string[]
+          created_at?: string
+          findings?: string
+          id?: string
+          pr: string
+          repo: string
+          result?: string
+        }
+        Update: {
+          capsule_names?: string[]
+          created_at?: string
+          findings?: string
+          id?: string
+          pr?: string
+          repo?: string
+          result?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
