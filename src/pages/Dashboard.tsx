@@ -4,37 +4,33 @@ import CapsuleCard from "@/components/CapsuleCard";
 import { useOCF } from "@/context/OCFContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
 
-const activityIcons = {
-  success: CheckCircle2,
-  error: XCircle,
-  warning: AlertCircle,
-  info: Info,
-};
-
-const activityColors = {
-  success: "text-success",
-  error: "text-destructive",
-  warning: "text-warning",
-  info: "text-primary",
-};
+const activityIcons = { success: CheckCircle2, error: XCircle, warning: AlertCircle, info: Info };
+const activityColors = { success: "text-success", error: "text-destructive", warning: "text-warning", info: "text-primary" };
 
 const Dashboard = () => {
-  const { capsules, activity, evidence } = useOCF();
+  const { capsules, activity, evidence, loading } = useOCF();
   const navigate = useNavigate();
 
   const compliantCount = capsules.filter((c) => c.status === "compliant").length;
   const complianceRate = capsules.length > 0 ? Math.round((compliantCount / capsules.length) * 100) : 0;
   const openFindings = capsules.filter((c) => c.status === "non-compliant" || c.status === "warning").length;
 
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Compliance Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Obligation Capsule Fabric — continuous enforcement & evidence
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Obligation Capsule Fabric — continuous enforcement & evidence</p>
         </div>
         <Button onClick={() => navigate("/create")} className="gap-2">
           <Package className="h-4 w-4" />
@@ -69,18 +65,15 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1">
             {activity.slice(0, 8).map((a, i) => {
-              const Icon = activityIcons[a.type];
+              const Icon = activityIcons[a.event_type as keyof typeof activityIcons] || Info;
+              const color = activityColors[a.event_type as keyof typeof activityColors] || "text-primary";
               return (
-                <div
-                  key={`${a.time}-${i}`}
-                  className="flex items-start gap-3 rounded-md border border-border bg-card p-3 animate-fade-in"
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
-                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${activityColors[a.type]}`} />
+                <div key={a.id} className="flex items-start gap-3 rounded-md border border-border bg-card p-3 animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
+                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />
                   <div className="min-w-0">
                     <p className="text-xs text-foreground">{a.event}</p>
                     <p className="text-xs text-muted-foreground font-mono truncate">
-                      {a.capsule} · {a.time}
+                      {a.capsule_name} · {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
                     </p>
                   </div>
                 </div>
