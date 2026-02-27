@@ -105,6 +105,8 @@ const CreateCapsule = () => {
       hash: capsuleHash,
       clause,
       controls: mappings,
+      risk_score: Math.min(100, extracted.length * 15 + mappings.filter((m: any) => m.confidence < 0.8).length * 20),
+      user_id: null,
     });
     if (cap) {
       setPublished(true);

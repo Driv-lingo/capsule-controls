@@ -48,9 +48,11 @@ export type Database = {
           last_run: string
           name: string
           obligations: number
+          risk_score: number | null
           source: string
           status: string
           updated_at: string
+          user_id: string | null
           version: string
         }
         Insert: {
@@ -62,9 +64,11 @@ export type Database = {
           last_run?: string
           name: string
           obligations?: number
+          risk_score?: number | null
           source?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
           version?: string
         }
         Update: {
@@ -76,9 +80,11 @@ export type Database = {
           last_run?: string
           name?: string
           obligations?: number
+          risk_score?: number | null
           source?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
           version?: string
         }
         Relationships: []
@@ -151,6 +157,27 @@ export type Database = {
           pr?: string
           repo?: string
           result?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
         }
         Relationships: []
       }
