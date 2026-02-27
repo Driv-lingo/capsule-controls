@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,6 +15,7 @@ const Auth = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +24,13 @@ const Auth = () => {
 
     if (isLogin) {
       const { error } = await signIn(email, password);
-      if (error) setError(error);
+      if (error) {
+        setError(
+          error === "Invalid login credentials"
+            ? "Invalid login credentials. Use your original password or click ‘Forgot password?’ below."
+            : error
+        );
+      }
     } else {
       const { error } = await signUp(email, password, fullName);
       if (error) setError(error);
@@ -32,10 +39,22 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError("Enter your email first, then click Forgot password.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    if (error) setError(error);
+    else setResetSent(true);
+    setLoading(false);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-8 px-6">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-primary glow-strong">
             <Shield className="h-7 w-7 text-primary-foreground" />
@@ -48,7 +67,6 @@ const Auth = () => {
           </div>
         </div>
 
-        {/* Enforcement Banner */}
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
@@ -89,6 +107,20 @@ const Auth = () => {
               </Alert>
             )}
 
+            {resetSent && (
+              <Alert>
+                <AlertDescription className="text-xs">Password reset email sent. Check your inbox and spam folder.</AlertDescription>
+              </Alert>
+            )}
+
+            {isLogin && (
+              <div className="flex justify-end">
+                <button type="button" onClick={handleForgotPassword} className="text-xs text-primary hover:underline" disabled={loading}>
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
               {loading ? "Processing…" : isLogin ? "Sign In" : "Create Account"}
@@ -100,7 +132,7 @@ const Auth = () => {
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setError(null); setSignUpSuccess(false); }}
+            onClick={() => { setIsLogin(!isLogin); setError(null); setSignUpSuccess(false); setResetSent(false); }}
             className="text-primary hover:underline"
           >
             {isLogin ? "Sign up" : "Sign in"}
