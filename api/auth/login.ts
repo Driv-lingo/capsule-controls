@@ -1,6 +1,52 @@
 import bcrypt from "bcryptjs";
-import { sql } from "../_db.js";
-import { createSession } from "../_auth.js";
+import postgres from "postgres";
+import crypto from "crypto";
+import { serialize } from "cookie";
+
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+if (!connectionString) {
+  throw new Error("Missing DATABASE_URL or POSTGRES_URL");
+}
+
+const sql = postgres(connectionString, {
+  ssl: "require",
+});
+
+const COOKIE_NAME = "capsule_session";
+
+function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+async function createSession(userId: string, res: any) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashToken(token);
+  const sessionId = crypto.randomUUID();
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
+  await sql`
+    INSERT INTO sessions ${sql({
+      id: sessionId,
+      user_id: userId,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+    })}
+  `;
+
+  res.setHeader(
+    "Set-Cookie",
+    serialize(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      expires: expiresAt,
+    })
+  );
+}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -31,7 +77,6 @@ export default async function handler(req: any, res: any) {
     }
 
     if (!user.password_hash) {
-      console.error("Login error: user exists but password_hash is missing");
       return res.status(500).json({
         error: "Account exists but password login is not configured correctly",
       });
@@ -59,10 +104,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(500).json({
       error: "Login failed",
-      detail:
-        process.env.NODE_ENV === "production"
-          ? undefined
-          : error?.message || String(error),
+      detail: error?.message || String(error),
     });
   }
 }
