@@ -30,6 +30,13 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: "Invalid login credentials" });
     }
 
+    if (!user.password_hash) {
+      console.error("Login error: user exists but password_hash is missing");
+      return res.status(500).json({
+        error: "Account exists but password login is not configured correctly",
+      });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
@@ -47,8 +54,15 @@ export default async function handler(req: any, res: any) {
         created_at: user.created_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
-    return res.status(500).json({ error: "Login failed" });
+
+    return res.status(500).json({
+      error: "Login failed",
+      detail:
+        process.env.NODE_ENV === "production"
+          ? undefined
+          : error?.message || String(error),
+    });
   }
 }
