@@ -1,77 +1,156 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  resetPassword: (email: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+type User = {
+  id: string;
+  email: string;
+  name?: string | null;
+  role?: string;
 };
 
-const AuthContext = createContext<AuthContextType | null>(null);
+type AuthResult = {
+  error: string | null;
+};
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
+type AuthContextType = {
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<AuthResult>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function readJsonSafe(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function refreshUser() {
+    try {
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+
+      const data = await readJsonSafe(response);
+
+      if (response.ok && data.user) {
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    refreshUser();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
+  async function signIn(email: string, password: string): Promise<AuthResult> {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await readJsonSafe(response);
+
+      if (!response.ok) {
+        return { error: data.error || "Login failed" };
+      }
+
+      setUser(data.user);
+      return { error: null };
+    } catch {
+      return { error: "Unable to reach login server" };
+    }
+  }
+
+  async function signUp(
+    email: string,
+    password: string,
+    fullName?: string
+  ): Promise<AuthResult> {
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          password,
+          name: fullName,
+        }),
+      });
+
+      const data = await readJsonSafe(response);
+
+      if (!response.ok) {
+        return { error: data.error || "Signup failed" };
+      }
+
+      setUser(data.user);
+      return { error: null };
+    } catch {
+      return { error: "Unable to reach signup server" };
+    }
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
     });
-    return { error: error?.message ?? null };
-  };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  };
+    setUser(null);
+  }
 
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    return { error: error?.message ?? null };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  async function resetPassword(_email: string): Promise<AuthResult> {
+    return {
+      error: "Password reset is not configured yet.",
+    };
+  }
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, resetPassword, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-};
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+
+  return context;
+}
