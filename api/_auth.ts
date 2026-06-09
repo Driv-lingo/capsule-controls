@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { serialize, parse } from "cookie";
-import { sql } from "./_db";
+import { sql } from "./_db.js";
 
 const COOKIE_NAME = "capsule_session";
 
