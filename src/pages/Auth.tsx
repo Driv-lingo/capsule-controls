@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Shield, LogIn, UserPlus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
-  const { signIn, signUp, resetPassword } = useAuth();
+  const navigate = useNavigate();
+  const { user, signIn, signUp, resetPassword } = useAuth();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -18,6 +20,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +44,8 @@ const Auth = () => {
               ? "Invalid login credentials. Please check your email and password."
               : error
           );
+        } else {
+          navigate("/", { replace: true });
         }
       } else {
         const { error } = await signUp(email, password, fullName);
@@ -44,6 +54,7 @@ const Auth = () => {
           setError(error);
         } else {
           setSignUpSuccess(true);
+          navigate("/", { replace: true });
         }
       }
     } catch {
@@ -125,21 +136,8 @@ const Auth = () => {
           <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-center">
             <p className="text-sm font-medium text-success">Account created</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Your account was created successfully. You can now sign in.
+              Redirecting you now.
             </p>
-
-            <Button
-              type="button"
-              className="mt-4 w-full"
-              onClick={() => {
-                setIsLogin(true);
-                setSignUpSuccess(false);
-                setError(null);
-                setPassword("");
-              }}
-            >
-              Go to Sign In
-            </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
