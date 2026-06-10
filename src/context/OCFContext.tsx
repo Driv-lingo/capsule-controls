@@ -123,7 +123,7 @@ if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.randomUUID) {
 return globalThis.crypto.randomUUID();
 }
 
-return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+return Date.now().toString() + "-" + Math.random().toString(16).slice(2);
 }
 
 function now(): string {
@@ -132,20 +132,25 @@ return new Date().toISOString();
 
 function generateHash(): string {
 const chars = "0123456789abcdef";
+
 const start = Array.from(
 { length: 4 },
 () => chars[Math.floor(Math.random() * 16)]
 ).join("");
+
 const end = Array.from(
 { length: 4 },
 () => chars[Math.floor(Math.random() * 16)]
 ).join("");
 
-return `sha256:${start}…${end}`;
+return "sha256:" + start + "…" + end;
 }
 
 function canUseLocalStorage(): boolean {
-return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+return (
+typeof window !== "undefined" &&
+typeof window.localStorage !== "undefined"
+);
 }
 
 function readStorage<T>(key: string, fallback: T): T {
@@ -175,6 +180,7 @@ return value.replace(/\s+/g, " ").trim();
 
 function sentenceCase(value: string): string {
 const cleaned = cleanText(value);
+
 if (!cleaned) return cleaned;
 
 return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -182,9 +188,10 @@ return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 
 function ensurePeriod(value: string): string {
 const cleaned = cleanText(value);
+
 if (!cleaned) return cleaned;
 
-return /[.!?]$/.test(cleaned) ? cleaned : `${cleaned}.`;
+return /[.!?]$/.test(cleaned) ? cleaned : cleaned + ".";
 }
 
 function inferCapsuleName(text: string): string {
@@ -227,7 +234,6 @@ priority: ExtractedObligation["priority"] = "medium"
 ) => {
 const normalized = ensurePeriod(sentenceCase(obligationText));
 
-```
 if (!obligations.some((item) => item.text === normalized)) {
   obligations.push({
     id: generateId(),
@@ -237,7 +243,6 @@ if (!obligations.some((item) => item.text === normalized)) {
     status: "active",
   });
 }
-```
 
 };
 
@@ -298,13 +303,12 @@ sentenceParts.forEach((sentence) => {
 add(sentence, sentence.toLowerCase().includes("must") ? "high" : "medium");
 });
 
-```
 return obligations;
-```
 
 }
 
 add(text, "medium");
+
 return obligations;
 }
 
@@ -383,7 +387,11 @@ status: "active",
 };
 }
 
-if (lower.includes("must") || lower.includes("shall") || lower.includes("required")) {
+if (
+lower.includes("must") ||
+lower.includes("shall") ||
+lower.includes("required")
+) {
 return {
 id: generateId(),
 obligation: obligation.text,
@@ -418,27 +426,31 @@ const [loading, setLoading] = useState(true);
 const fetchAll = useCallback(async () => {
 setLoading(true);
 
-```
 const storedCapsules = readStorage<CapsuleRow[]>(
   STORAGE_KEYS.capsules,
   []
 );
+
 const storedActivity = readStorage<ActivityRow[]>(
   STORAGE_KEYS.activity,
   []
 );
+
 const storedEvidence = readStorage<EvidenceRow[]>(
   STORAGE_KEYS.evidence,
   []
 );
-const storedGates = readStorage<GateRow[]>(STORAGE_KEYS.gates, []);
+
+const storedGates = readStorage<GateRow[]>(
+  STORAGE_KEYS.gates,
+  []
+);
 
 setCapsules(storedCapsules);
 setActivity(storedActivity);
 setEvidence(storedEvidence);
 setGates(storedGates);
 setLoading(false);
-```
 
 }, []);
 
@@ -456,7 +468,6 @@ event_type: eventType,
 created_at: now(),
 };
 
-```
   setActivity((prev) => {
     const next = [row, ...prev].slice(0, 50);
     writeStorage(STORAGE_KEYS.activity, next);
@@ -464,7 +475,6 @@ created_at: now(),
   });
 },
 []
-```
 
 );
 
@@ -474,7 +484,6 @@ capsule: Omit<CapsuleRow, "id" | "created_at" | "updated_at">
 ): Promise<CapsuleRow | null> => {
 const timestamp = now();
 
-```
   const row: CapsuleRow = {
     ...capsule,
     id: generateId(),
@@ -491,7 +500,7 @@ const timestamp = now();
   });
 
   await addActivity(
-    `Capsule ${capsule.version ?? "1.0.0"} signed and published`,
+    "Capsule " + (capsule.version ?? "1.0.0") + " signed and published",
     capsule.name,
     "success"
   );
@@ -499,7 +508,6 @@ const timestamp = now();
   return row;
 },
 [addActivity]
-```
 
 );
 
@@ -523,7 +531,6 @@ status: packet.status,
 created_at: now(),
 };
 
-```
   setEvidence((prev) => {
     const next = [row, ...prev];
     writeStorage(STORAGE_KEYS.evidence, next);
@@ -533,7 +540,6 @@ created_at: now(),
   return row;
 },
 []
-```
 
 );
 
@@ -555,7 +561,6 @@ findings: gate.findings,
 created_at: now(),
 };
 
-```
   setGates((prev) => {
     const next = [row, ...prev];
     writeStorage(STORAGE_KEYS.gates, next);
@@ -563,7 +568,6 @@ created_at: now(),
   });
 },
 []
-```
 
 );
 
@@ -571,7 +575,6 @@ const deleteCapsule = useCallback(
 async (capsuleId: string) => {
 const cap = capsules.find((c) => c.id === capsuleId);
 
-```
   setCapsules((prev) => {
     const next = prev.filter((c) => c.id !== capsuleId);
     writeStorage(STORAGE_KEYS.capsules, next);
@@ -583,21 +586,18 @@ const cap = capsules.find((c) => c.id === capsuleId);
   }
 },
 [capsules, addActivity]
-```
 
 );
 
 const runComplianceCheck = useCallback(
 async (capsuleId: string): Promise<EvidenceRow | null> => {
 const cap = capsules.find((c) => c.id === capsuleId);
-if (!cap) return null;
 
-```
+  if (!cap) return null;
+
   const totalChecks = Math.floor(Math.random() * 6) + 5;
-  const passed = Math.max(
-    0,
-    Math.min(totalChecks, totalChecks - Math.floor(Math.random() * 3))
-  );
+  const missedChecks = Math.floor(Math.random() * 3);
+  const passed = Math.max(0, Math.min(totalChecks, totalChecks - missedChecks));
 
   const status =
     passed === totalChecks
@@ -619,7 +619,7 @@ if (!cap) return null;
     status === "compliant"
       ? "Capsule check passed"
       : status === "warning"
-        ? `Warning: ${totalChecks - passed} check(s) need attention`
+        ? "Warning: " + (totalChecks - passed) + " check(s) need attention"
         : "Non-compliance detected",
     cap.name,
     status === "compliant"
@@ -648,14 +648,12 @@ if (!cap) return null;
   return packet;
 },
 [capsules, addEvidence, addActivity]
-```
 
 );
 
 const extractObligations = useCallback(async (clause: string) => {
 const text = cleanText(clause);
 
-```
 if (!text) return null;
 
 const obligations = buildObligations(text);
@@ -667,7 +665,6 @@ return {
   obligations,
   controlMappings,
 };
-```
 
 }, []);
 
