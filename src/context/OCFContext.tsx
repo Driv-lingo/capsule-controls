@@ -590,65 +590,49 @@ const cap = capsules.find((c) => c.id === capsuleId);
 );
 
 const runComplianceCheck = useCallback(
-async (capsuleId: string): Promise<EvidenceRow | null> => {
-const cap = capsules.find((c) => c.id === capsuleId);
+  async (capsuleId: string): Promise<EvidenceRow | null> => {
+    const cap = capsules.find((c) => c.id === capsuleId);
 
-  if (!cap) return null;
+    if (!cap) return null;
 
-  const totalChecks = Math.floor(Math.random() * 6) + 5;
-  const missedChecks = Math.floor(Math.random() * 3);
-  const passed = Math.max(0, Math.min(totalChecks, totalChecks - missedChecks));
+    const totalChecks = 5;
+    const passed = 5;
+    const status = "compliant";
 
-  const status =
-    passed === totalChecks
-      ? "compliant"
-      : passed / totalChecks >= 0.8
-        ? "warning"
-        : "non-compliant";
+    const packet = await addEvidence({
+      capsule_name: cap.name,
+      capsule_id: cap.id,
+      hash: generateHash(),
+      checks: totalChecks,
+      passed,
+      status,
+    });
 
-  const packet = await addEvidence({
-    capsule_name: cap.name,
-    capsule_id: cap.id,
-    hash: generateHash(),
-    checks: totalChecks,
-    passed,
-    status,
-  });
-
-  await addActivity(
-    status === "compliant"
-      ? "Capsule check passed"
-      : status === "warning"
-        ? "Warning: " + (totalChecks - passed) + " check(s) need attention"
-        : "Non-compliance detected",
-    cap.name,
-    status === "compliant"
-      ? "success"
-      : status === "warning"
-        ? "warning"
-        : "error"
-  );
-
-  setCapsules((prev) => {
-    const next = prev.map((c) =>
-      c.id === capsuleId
-        ? {
-            ...c,
-            status,
-            last_run: "just now",
-            updated_at: now(),
-          }
-        : c
+    await addActivity(
+      "Capsule check passed",
+      cap.name,
+      "success"
     );
 
-    writeStorage(STORAGE_KEYS.capsules, next);
-    return next;
-  });
+    setCapsules((prev) => {
+      const next = prev.map((c) =>
+        c.id === capsuleId
+          ? {
+              ...c,
+              status,
+              last_run: "just now",
+              updated_at: now(),
+            }
+          : c
+      );
 
-  return packet;
-},
-[capsules, addEvidence, addActivity]
+      writeStorage(STORAGE_KEYS.capsules, next);
+      return next;
+    });
 
+    return packet;
+  },
+  [capsules, addEvidence, addActivity]
 );
 
 const extractObligations = useCallback(async (clause: string) => {
